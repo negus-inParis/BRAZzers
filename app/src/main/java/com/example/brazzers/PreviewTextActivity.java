@@ -120,6 +120,18 @@ public class PreviewTextActivity extends AppCompatActivity {
 
                     runOnUiThread(() -> openFlashcardsScreen(generatedText));
                 } else {
+                    // Read the error stream to see EXACTLY why Gemini rejected it (e.g., Quota Exceeded)
+                    StringBuilder errorResponse = new StringBuilder();
+                    if (conn.getErrorStream() != null) {
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                errorResponse.append(line);
+                            }
+                        }
+                    }
+                    android.util.Log.e("GeminiAPI", "Error Code: " + responseCode + " \nBody: " + errorResponse.toString());
+
                     runOnUiThread(() -> {
                         showLoading(false);
                         Toast.makeText(this, getString(R.string.api_error) + " (Code: " + responseCode + ")", Toast.LENGTH_LONG).show();
