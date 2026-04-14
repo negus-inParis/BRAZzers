@@ -8,16 +8,16 @@
     android:padding="24dp">
 
     <Button
-        android:id="@+id/btnScanNotes"
+        android:id="@+id/btnScan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="@string/scan_notes" />
+        android:text="@string/scan_notes"
+        android:layout_marginBottom="16dp"/>
 
     <Button
-        android:id="@+id/btnMyFlashcards"
+        android:id="@+id/btnFlashcards"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/my_flashcards" />
+        android:text="@string/my_flashcards"/>
 
 </LinearLayout>
