@@ -42,6 +42,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
-
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("androidx.cardview:cardview:1.0.0")
 
 }

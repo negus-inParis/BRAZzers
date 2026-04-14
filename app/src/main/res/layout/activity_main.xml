@@ -3,21 +3,78 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_dark"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="24dp">
 
-    <Button
-        android:id="@+id/btnScan"
-        android:layout_width="match_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/scan_notes"
-        android:layout_marginBottom="16dp"/>
+        android:text="@string/app_name"
+        android:textColor="@color/text_primary"
+        android:textSize="42sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
 
-    <Button
-        android:id="@+id/btnFlashcards"
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_subtitle"
+        android:textColor="@color/secondary"
+        android:textSize="18sp"
+        android:textStyle="italic"
+        android:layout_marginBottom="48dp"/>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/my_flashcards"/>
+        android:background="@drawable/bg_main_card"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:elevation="8dp">
+
+        <Button
+            android:id="@+id/btnScan"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_button_primary"
+            android:text="@string/scan_notes"
+            android:textAllCaps="false"
+            android:textColor="@color/text_on_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/scan_notes_desc"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="32dp"/>
+
+        <Button
+            android:id="@+id/btnFlashcards"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_button_secondary"
+            android:text="@string/my_flashcards"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/my_flashcards_desc"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"/>
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -2,4 +2,40 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Quizzers Dark Theme Palette -->
+    <color name="bg_dark">#0F0F1A</color>
+    <color name="bg_dark_secondary">#161628</color>
+    <color name="card_surface">#1A1A2E</color>
+    <color name="card_surface_light">#222240</color>
+
+    <!-- Primary Accent (Vibrant Purple-Blue) -->
+    <color name="primary">#6C63FF</color>
+    <color name="primary_dark">#5A52E0</color>
+    <color name="primary_light">#8B85FF</color>
+
+    <!-- Secondary Accent (Teal-Green) -->
+    <color name="secondary">#00D9A6</color>
+    <color name="secondary_dark">#00B88A</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#F0F0F5</color>
+    <color name="text_secondary">#A0A0B8</color>
+    <color name="text_muted">#6B6B80</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Status Colors -->
+    <color name="error">#FF5252</color>
+    <color name="success">#00D9A6</color>
+
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#6C63FF</color>
+    <color name="gradient_end">#00D9A6</color>
+
+    <!-- Card Flashcard -->
+    <color name="flashcard_front">#1E1E3A</color>
+    <color name="flashcard_back">#0D2137</color>
+
+    <!-- Overlay -->
+    <color name="overlay_dark">#CC000000</color>
 </resources>
