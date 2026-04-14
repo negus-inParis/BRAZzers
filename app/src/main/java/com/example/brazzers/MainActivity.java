@@ -16,8 +16,9 @@ public class MainActivity extends AppCompatActivity {
         Button btnScan = findViewById(R.id.btnScan);
         Button btnFlashcards = findViewById(R.id.btnFlashcards);
 
-        btnScan.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ScanActivity.class)));
+        btnScan.setOnClickListener(v -> startActivity(new Intent(this, ScanActivity.class)));
 
-        btnFlashcards.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, FlashcardsActivity.class)));
+        // Opens the saved decks list, not FlashcardsActivity directly
+        btnFlashcards.setOnClickListener(v -> startActivity(new Intent(this, SavedDecksActivity.class)));
     }
 }

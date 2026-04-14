@@ -1,16 +1,20 @@
 package com.example.brazzers;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,9 +27,11 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions;
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning;
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult;
 import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,9 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ScanActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<IntentSenderRequest> scannerLauncher;
-    private ActivityResultLauncher<Intent> galleryLauncher;
+    private ActivityResultLauncher<PickVisualMediaRequest> galleryLauncher;
     private ActivityResultLauncher<Intent> documentLauncher;
-    private ActivityResultLauncher<String[]> permissionLauncher;
 
     private GmsDocumentScanner scanner;
 
@@ -59,6 +64,7 @@ public class ScanActivity extends AppCompatActivity {
 
         scanner = GmsDocumentScanning.getClient(options);
 
+        // Document Scanner launcher (camera)
         scannerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartIntentSenderForResult(),
                 result -> {
@@ -81,40 +87,28 @@ public class ScanActivity extends AppCompatActivity {
                     }
                 });
 
+        // Modern photo picker for Gallery
         galleryLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Uri imageUri = result.getData().getData();
-                        if (imageUri != null) {
-                            processUriWithOCR(imageUri);
-                        } else {
-                            Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show();
-                        }
+                new ActivityResultContracts.PickVisualMedia(),
+                uri -> {
+                    if (uri != null) {
+                        processImageUri(uri);
+                    } else {
+                        Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show();
                     }
                 });
 
+        // Document picker (images + PDFs)
         documentLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri fileUri = result.getData().getData();
                         if (fileUri != null) {
-                            processUriWithOCR(fileUri);
+                            handleDocumentUri(fileUri);
                         } else {
                             Toast.makeText(this, "No file selected", Toast.LENGTH_SHORT).show();
                         }
-                    }
-                });
-
-        permissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> {
-                    Boolean grantedImage = result.getOrDefault(getReadMediaImagesPermission(), false);
-                    if (Boolean.TRUE.equals(grantedImage)) {
-                        openGalleryIntent();
-                    } else {
-                        Toast.makeText(this, "Gallery permission denied", Toast.LENGTH_SHORT).show();
                     }
                 });
 
@@ -128,11 +122,9 @@ public class ScanActivity extends AppCompatActivity {
         });
 
         btnGallery.setOnClickListener(v -> {
-            if (needsReadMediaPermission()) {
-                permissionLauncher.launch(new String[]{getReadMediaImagesPermission()});
-            } else {
-                openGalleryIntent();
-            }
+            galleryLauncher.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build());
         });
 
         btnDocument.setOnClickListener(v -> openDocumentIntent());
@@ -148,78 +140,180 @@ public class ScanActivity extends AppCompatActivity {
         );
     }
 
-    private boolean needsReadMediaPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.READ_MEDIA_IMAGES
-            ) != PackageManager.PERMISSION_GRANTED;
-        }
-        return false;
-    }
-
-    private String getReadMediaImagesPermission() {
-        return Manifest.permission.READ_MEDIA_IMAGES;
-    }
-
-    private void openGalleryIntent() {
-        Intent pick = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        galleryLauncher.launch(pick);
-    }
-
     private void openDocumentIntent() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "application/pdf"});
         documentLauncher.launch(intent);
     }
 
-    private void processMultipleImages(List<Uri> uris) {
-        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+    /**
+     * Route a document Uri based on its MIME type.
+     */
+    private void handleDocumentUri(Uri uri) {
+        ContentResolver resolver = getContentResolver();
+        String mimeType = resolver.getType(uri);
 
+        if (mimeType != null && mimeType.equals("application/pdf")) {
+            processPdf(uri);
+        } else if (mimeType != null && mimeType.startsWith("image/")) {
+            processImageUri(uri);
+        } else {
+            // Fallback: try as image
+            processImageUri(uri);
+        }
+    }
+
+    /**
+     * Safely process a single image Uri by reading it via ContentResolver into a Bitmap,
+     * then running OCR. Works for any content:// Uri.
+     */
+    private void processImageUri(Uri uri) {
+        try {
+            InputImage image = InputImage.fromFilePath(this, uri);
+            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            recognizer.process(image)
+                    .addOnSuccessListener(res -> openPreviewScreen(cleanExtractedText(res.getText())))
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this, "OCR failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                    );
+        } catch (IOException e) {
+            Toast.makeText(this, "Failed to read image: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Render each PDF page to a Bitmap using PdfRenderer, then OCR each page.
+     */
+    private void processPdf(Uri uri) {
+        new Thread(() -> {
+            try {
+                ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
+                if (pfd == null) {
+                    runOnUiThread(() -> Toast.makeText(this, "Could not open PDF", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                PdfRenderer renderer = new PdfRenderer(pfd);
+                int pageCount = renderer.getPageCount();
+
+                if (pageCount == 0) {
+                    renderer.close();
+                    pfd.close();
+                    runOnUiThread(() -> Toast.makeText(this, "PDF has no pages", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                // Render all pages to bitmaps first (PdfRenderer requires sequential access)
+                List<Bitmap> bitmaps = new ArrayList<>();
+                for (int i = 0; i < pageCount; i++) {
+                    PdfRenderer.Page page = renderer.openPage(i);
+                    // Render at 2x for better OCR quality
+                    int width = page.getWidth() * 2;
+                    int height = page.getHeight() * 2;
+                    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                    bitmap.eraseColor(0xFFFFFFFF); // white background
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                    page.close();
+                    bitmaps.add(bitmap);
+                }
+                renderer.close();
+                pfd.close();
+
+                // Now OCR each bitmap on the main thread (ML Kit needs it)
+                runOnUiThread(() -> ocrBitmaps(bitmaps));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() ->
+                        Toast.makeText(this, "PDF processing failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+            }
+        }).start();
+    }
+
+    /**
+     * OCR a list of Bitmaps sequentially and combine results.
+     */
+    private void ocrBitmaps(List<Bitmap> bitmaps) {
         StringBuilder sb = new StringBuilder();
         AtomicInteger done = new AtomicInteger(0);
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
-        com.google.mlkit.vision.text.TextRecognizer recognizer =
-                TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        // Use an array to maintain page order
+        String[] results = new String[bitmaps.size()];
 
-        for (Uri uri : uris) {
+        for (int i = 0; i < bitmaps.size(); i++) {
+            final int index = i;
+            InputImage image = InputImage.fromBitmap(bitmaps.get(i), 0);
+            recognizer.process(image)
+                    .addOnSuccessListener(res -> {
+                        results[index] = cleanExtractedText(res.getText());
+                        if (done.incrementAndGet() == bitmaps.size()) {
+                            combinePdfResults(results);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        results[index] = "";
+                        if (done.incrementAndGet() == bitmaps.size()) {
+                            combinePdfResults(results);
+                        }
+                    });
+        }
+    }
+
+    private void combinePdfResults(String[] results) {
+        StringBuilder sb = new StringBuilder();
+        for (String page : results) {
+            if (page != null && !page.isEmpty()) {
+                sb.append(page).append("\n\n");
+            }
+        }
+        openPreviewScreen(sb.toString());
+    }
+
+    private void processMultipleImages(List<Uri> uris) {
+        StringBuilder sb = new StringBuilder();
+        AtomicInteger done = new AtomicInteger(0);
+        String[] results = new String[uris.size()];
+
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+        for (int i = 0; i < uris.size(); i++) {
+            final int index = i;
             try {
-                InputImage image = InputImage.fromFilePath(this, uri);
+                InputImage image = InputImage.fromFilePath(this, uris.get(i));
                 recognizer.process(image)
                         .addOnSuccessListener(res -> {
-                            sb.append(cleanExtractedText(res.getText())).append("\n\n");
+                            results[index] = cleanExtractedText(res.getText());
                             if (done.incrementAndGet() == uris.size()) {
-                                openPreviewScreen(sb.toString());
+                                combineResults(results);
                             }
                         })
                         .addOnFailureListener(e -> {
+                            results[index] = "";
                             if (done.incrementAndGet() == uris.size()) {
-                                openPreviewScreen(sb.toString());
+                                combineResults(results);
                             }
                         });
             } catch (Exception e) {
+                results[index] = "";
                 if (done.incrementAndGet() == uris.size()) {
-                    openPreviewScreen(sb.toString());
+                    combineResults(results);
                 }
             }
         }
     }
 
-    private void processUriWithOCR(Uri uri) {
-        try {
-            InputImage image = InputImage.fromFilePath(this, uri);
-
-            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                    .process(image)
-                    .addOnSuccessListener(res -> openPreviewScreen(cleanExtractedText(res.getText())))
-                    .addOnFailureListener(e ->
-                            Toast.makeText(this, "OCR failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                    );
-
-        } catch (IOException e) {
-            Toast.makeText(this, "Failed to read file: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    private void combineResults(String[] results) {
+        StringBuilder sb = new StringBuilder();
+        for (String page : results) {
+            if (page != null && !page.isEmpty()) {
+                sb.append(page).append("\n\n");
+            }
         }
+        openPreviewScreen(sb.toString());
     }
 
     private String cleanExtractedText(String text) {

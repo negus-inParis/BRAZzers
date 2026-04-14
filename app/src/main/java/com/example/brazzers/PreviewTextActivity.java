@@ -30,9 +30,6 @@ public class PreviewTextActivity extends AppCompatActivity {
     private LinearLayout loadingOverlay;
     private Button btnGenerateFlashcards;
 
-    // Gemini API Key from the user
-    private static final String API_KEY = "AIzaSyCB5TdSVk6WTyIGqYanUHpQCI9M7-BdPXg";
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,7 +86,7 @@ public class PreviewTextActivity extends AppCompatActivity {
                 String prompt = "Convert the following text into flashcards. " +
                         "Format strictly as:\nTerm: Definition\n\nReturn ONLY the flashcards, one per line. No intro, no markdown.\n\nText:\n" + text;
 
-                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + API_KEY);
+                URL url = new URL(ApiConfig.getGeminiUrl());
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
@@ -149,10 +146,9 @@ public class PreviewTextActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, FlashcardsActivity.class);
         intent.putStringArrayListExtra("flashcards", flashcards);
-        // Indicate this came from Generation so Save button can be shown
-        intent.putExtra("from_generation", true); 
+        intent.putExtra("from_generation", true);
         startActivity(intent);
-        finish(); // Optionally finish preview to prevent stacking
+        finish();
     }
 
     private ArrayList<String> parseFlashcards(String text) {
@@ -163,7 +159,9 @@ public class PreviewTextActivity extends AppCompatActivity {
             // Remove markdown lists if gemini added them
             if (line.startsWith("- ")) line = line.substring(2).trim();
             if (line.startsWith("* ")) line = line.substring(2).trim();
-            
+            // Remove numbered lists
+            if (line.matches("^\\d+\\.\\s+.*")) line = line.replaceFirst("^\\d+\\.\\s+", "");
+
             if (line.contains(":") && line.length() > 5) {
                 list.add(line);
             }
