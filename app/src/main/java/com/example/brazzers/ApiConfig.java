@@ -13,10 +13,10 @@ public final class ApiConfig {
     // Gemini API key — replace or proxy in production
     public static final String GEMINI_API_KEY = "AIzaSyCB5TdSVk6WTyIGqYanUHpQCI9M7-BdPXg";
 
-    public static final String GEMINI_MODEL = "gemini-1.5-flash";
+    public static final String GEMINI_MODEL = "gemini-2.0-flash";
 
     public static String getGeminiUrl() {
-        return "https://generativelanguage.googleapis.com/v1/models/"
+        return "https://generativelanguage.googleapis.com/v1beta/models/"
                 + GEMINI_MODEL + ":generateContent?key=" + GEMINI_API_KEY;
     }
 }

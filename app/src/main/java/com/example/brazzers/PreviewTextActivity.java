@@ -30,6 +30,8 @@ public class PreviewTextActivity extends AppCompatActivity {
     private LinearLayout loadingOverlay;
     private Button btnGenerateFlashcards;
 
+    private static final int MAX_RETRIES = 3;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,7 +68,7 @@ public class PreviewTextActivity extends AppCompatActivity {
                 return;
             }
             showLoading(true);
-            generateFlashcardsFromAI(inputText);
+            generateFlashcardsFromAI(inputText, 0);
         });
     }
 
@@ -80,7 +82,7 @@ public class PreviewTextActivity extends AppCompatActivity {
         etExtractedText.setEnabled(!show);
     }
 
-    private void generateFlashcardsFromAI(String text) {
+    private void generateFlashcardsFromAI(String text, int retryCount) {
         new Thread(() -> {
             try {
                 String prompt = "Convert the following text into flashcards. " +
@@ -119,8 +121,53 @@ public class PreviewTextActivity extends AppCompatActivity {
                     String generatedText = parts.getJSONObject(0).getString("text");
 
                     runOnUiThread(() -> openFlashcardsScreen(generatedText));
+                } else if (responseCode == 429 && retryCount < MAX_RETRIES) {
+                    // Rate limited — parse retry delay or use exponential backoff
+                    long waitMs = 0;
+                    StringBuilder errorBody = new StringBuilder();
+                    if (conn.getErrorStream() != null) {
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                errorBody.append(line);
+                            }
+                        }
+                    }
+                    android.util.Log.w("GeminiAPI", "429 hit, retry " + (retryCount + 1) + "/" + MAX_RETRIES + ": " + errorBody);
+
+                    // Try to extract retry delay from response
+                    try {
+                        JSONObject err = new JSONObject(errorBody.toString());
+                        JSONArray details = err.getJSONObject("error").getJSONArray("details");
+                        for (int i = 0; i < details.length(); i++) {
+                            JSONObject d = details.getJSONObject(i);
+                            if (d.getString("@type").contains("RetryInfo")) {
+                                String delay = d.getString("retryDelay");
+                                // Parse "43s" or "43.656869099s"
+                                delay = delay.replace("s", "");
+                                waitMs = (long) (Double.parseDouble(delay) * 1000);
+                                break;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+
+                    // Fallback: exponential backoff (10s, 20s, 40s)
+                    if (waitMs <= 0) {
+                        waitMs = (long) (10000 * Math.pow(2, retryCount));
+                    }
+
+                    final long finalWaitMs = waitMs;
+                    final int nextRetry = retryCount + 1;
+
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "Rate limited. Retrying in " + (finalWaitMs / 1000) + "s... (" + nextRetry + "/" + MAX_RETRIES + ")",
+                            Toast.LENGTH_SHORT).show());
+
+                    Thread.sleep(waitMs);
+                    // Retry on same thread
+                    runOnUiThread(() -> generateFlashcardsFromAI(text, nextRetry));
                 } else {
-                    // Read the error stream to see EXACTLY why Gemini rejected it (e.g., Quota Exceeded)
+                    // Non-retryable error
                     StringBuilder errorResponse = new StringBuilder();
                     if (conn.getErrorStream() != null) {
                         try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
@@ -130,7 +177,7 @@ public class PreviewTextActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    android.util.Log.e("GeminiAPI", "Error Code: " + responseCode + " \nBody: " + errorResponse.toString());
+                    android.util.Log.e("GeminiAPI", "Error Code: " + responseCode + " \nBody: " + errorResponse);
 
                     runOnUiThread(() -> {
                         showLoading(false);
