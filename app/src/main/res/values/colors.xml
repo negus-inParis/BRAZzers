@@ -3,39 +3,43 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Quizzers Dark Theme Palette -->
-    <color name="bg_dark">#0F0F1A</color>
-    <color name="bg_dark_secondary">#161628</color>
-    <color name="card_surface">#1A1A2E</color>
-    <color name="card_surface_light">#222240</color>
+    <!-- Quizzers Brand Theme — Black/Charcoal + Gold + Silver -->
+    <color name="bg_dark">#0A0A0A</color>
+    <color name="bg_dark_secondary">#111111</color>
+    <color name="card_surface">#1A1A1A</color>
+    <color name="card_surface_light">#252525</color>
 
-    <!-- Primary Accent (Vibrant Purple-Blue) -->
-    <color name="primary">#6C63FF</color>
-    <color name="primary_dark">#5A52E0</color>
-    <color name="primary_light">#8B85FF</color>
+    <!-- Primary Accent — Gold (the ZZ color) -->
+    <color name="primary">#F5C518</color>
+    <color name="primary_dark">#D4A800</color>
+    <color name="primary_light">#FFD84D</color>
 
-    <!-- Secondary Accent (Teal-Green) -->
+    <!-- Secondary Accent — Keep Teal for correct/success -->
     <color name="secondary">#00D9A6</color>
     <color name="secondary_dark">#00B88A</color>
 
-    <!-- Text Colors -->
-    <color name="text_primary">#F0F0F5</color>
-    <color name="text_secondary">#A0A0B8</color>
-    <color name="text_muted">#6B6B80</color>
-    <color name="text_on_primary">#FFFFFF</color>
+    <!-- Text Colors — White/Silver on Black -->
+    <color name="text_primary">#F0F0F0</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_muted">#666666</color>
+    <color name="text_on_primary">#000000</color>
 
     <!-- Status Colors -->
     <color name="error">#FF5252</color>
     <color name="success">#00D9A6</color>
 
-    <!-- Gradient Colors -->
-    <color name="gradient_start">#6C63FF</color>
-    <color name="gradient_end">#00D9A6</color>
+    <!-- Gradient — Gold to warm yellow -->
+    <color name="gradient_start">#F5C518</color>
+    <color name="gradient_end">#FF9000</color>
 
-    <!-- Card Flashcard -->
-    <color name="flashcard_front">#1E1E3A</color>
-    <color name="flashcard_back">#0D2137</color>
+    <!-- Card Flashcard — dark charcoal -->
+    <color name="flashcard_front">#1A1A1A</color>
+    <color name="flashcard_back">#0D1A25</color>
 
     <!-- Overlay -->
     <color name="overlay_dark">#CC000000</color>
+
+    <!-- Logo gold glow -->
+    <color name="logo_gold">#F5C518</color>
+    <color name="logo_silver">#CCCCCC</color>
 </resources>

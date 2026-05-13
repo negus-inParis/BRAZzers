@@ -9,8 +9,9 @@ import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
+
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -43,20 +44,21 @@ public class ScanActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> documentLauncher;
 
     private GmsDocumentScanner scanner;
+    private boolean isProcessing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan);
 
-        Button btnCamera = findViewById(R.id.btnCamera);
-        Button btnGallery = findViewById(R.id.btnGallery);
-        Button btnDocument = findViewById(R.id.btnDocument);
+        View cardCamera = findViewById(R.id.cardCamera);
+        View cardGallery = findViewById(R.id.cardGallery);
+        View cardDocument = findViewById(R.id.cardDocument);
         Button btnCancel = findViewById(R.id.btnCancel);
 
         GmsDocumentScannerOptions options =
                 new GmsDocumentScannerOptions.Builder()
-                        .setGalleryImportAllowed(true)
+                        .setGalleryImportAllowed(false)  // Disabled — gallery access is via the separate "Choose Image" button
                         .setPageLimit(10)
                         .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
                         .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
@@ -82,7 +84,7 @@ public class ScanActivity extends AppCompatActivity {
 
                             processMultipleImages(uris);
                         } else {
-                            Toast.makeText(this, "No scanned pages found", Toast.LENGTH_SHORT).show();
+                            CustomToast.show(ScanActivity.this, "No scanned pages found", CustomToast.INFO);
                         }
                     }
                 });
@@ -94,7 +96,7 @@ public class ScanActivity extends AppCompatActivity {
                     if (uri != null) {
                         processImageUri(uri);
                     } else {
-                        Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show();
+                        CustomToast.show(ScanActivity.this, "No image selected", CustomToast.INFO);
                     }
                 });
 
@@ -107,28 +109,45 @@ public class ScanActivity extends AppCompatActivity {
                         if (fileUri != null) {
                             handleDocumentUri(fileUri);
                         } else {
-                            Toast.makeText(this, "No file selected", Toast.LENGTH_SHORT).show();
+                            CustomToast.show(ScanActivity.this, "No file selected", CustomToast.INFO);
                         }
                     }
                 });
 
-        btnCamera.setOnClickListener(v -> {
+        // Debounced click handlers — prevents lag/stacking on rapid taps
+        cardCamera.setOnClickListener(v -> {
+            if (isProcessing) return;
+            isProcessing = true;
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                     != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.CAMERA}, 300);
+                isProcessing = false;
             } else {
                 openDocumentScanner();
             }
         });
 
-        btnGallery.setOnClickListener(v -> {
+        cardGallery.setOnClickListener(v -> {
+            if (isProcessing) return;
+            isProcessing = true;
             galleryLauncher.launch(new PickVisualMediaRequest.Builder()
                     .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                     .build());
         });
 
-        btnDocument.setOnClickListener(v -> openDocumentIntent());
+        cardDocument.setOnClickListener(v -> {
+            if (isProcessing) return;
+            isProcessing = true;    
+            openDocumentIntent();
+        });
+
         btnCancel.setOnClickListener(v -> finish());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isProcessing = false;
     }
 
     private void openDocumentScanner() {
@@ -136,7 +155,7 @@ public class ScanActivity extends AppCompatActivity {
         task.addOnSuccessListener(intentSender ->
                 scannerLauncher.launch(new IntentSenderRequest.Builder(intentSender).build())
         ).addOnFailureListener(e ->
-                Toast.makeText(this, "Scanner failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                CustomToast.show(this, "Scanner failed: " + e.getMessage(), CustomToast.ERROR)
         );
     }
 
@@ -176,10 +195,10 @@ public class ScanActivity extends AppCompatActivity {
             recognizer.process(image)
                     .addOnSuccessListener(res -> openPreviewScreen(cleanExtractedText(res.getText())))
                     .addOnFailureListener(e ->
-                            Toast.makeText(this, "OCR failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                            CustomToast.show(this, "OCR failed: " + e.getMessage(), CustomToast.ERROR)
                     );
         } catch (IOException e) {
-            Toast.makeText(this, "Failed to read image: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            CustomToast.show(this, "Failed to read image: " + e.getMessage(), CustomToast.ERROR);
         }
     }
 
@@ -191,7 +210,7 @@ public class ScanActivity extends AppCompatActivity {
             try {
                 ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r");
                 if (pfd == null) {
-                    runOnUiThread(() -> Toast.makeText(this, "Could not open PDF", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> CustomToast.show(this, "Could not open PDF", CustomToast.ERROR));
                     return;
                 }
 
@@ -201,7 +220,7 @@ public class ScanActivity extends AppCompatActivity {
                 if (pageCount == 0) {
                     renderer.close();
                     pfd.close();
-                    runOnUiThread(() -> Toast.makeText(this, "PDF has no pages", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> CustomToast.show(this, "PDF has no pages", CustomToast.INFO));
                     return;
                 }
 
@@ -227,7 +246,7 @@ public class ScanActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() ->
-                        Toast.makeText(this, "PDF processing failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                        CustomToast.show(this, "PDF processing failed: " + e.getMessage(), CustomToast.ERROR)
                 );
             }
         }).start();
@@ -325,7 +344,7 @@ public class ScanActivity extends AppCompatActivity {
 
     private void openPreviewScreen(String extractedText) {
         if (extractedText == null || extractedText.trim().isEmpty()) {
-            Toast.makeText(this, "No text found", Toast.LENGTH_SHORT).show();
+            CustomToast.show(this, "No text found", CustomToast.INFO);
             return;
         }
 
@@ -344,7 +363,7 @@ public class ScanActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 openDocumentScanner();
             } else {
-                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
+                CustomToast.show(this, "Camera permission denied", CustomToast.ERROR);
             }
         }
     }

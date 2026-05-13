@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Subtle gold glow orb behind logo -->
+    <View
+        android:id="@+id/splashOrb"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_orb_purple"
+        android:alpha="0.0" />
+
+    <!-- Centered logo -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- QUIZZERS text logo row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <TextView
+                android:id="@+id/splashQUI"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QUI"
+                android:textColor="#CCCCCC"
+                android:textSize="64sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="-0.02"
+                android:alpha="0" />
+
+            <TextView
+                android:id="@+id/splashZZ"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ZZ"
+                android:textColor="#F5C518"
+                android:textSize="64sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="-0.02"
+                android:shadowColor="#F5C518"
+                android:shadowRadius="40"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:layout_marginStart="-20dp"
+                android:layout_marginEnd="-20dp"
+                android:layout_marginTop="-16dp"
+                android:layout_marginBottom="-16dp"
+                android:alpha="0" />
+
+            <TextView
+                android:id="@+id/splashERS"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ERS"
+                android:textColor="#CCCCCC"
+                android:textSize="64sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="-0.02"
+                android:alpha="0" />
+        </LinearLayout>
+
+        <!-- Tagline -->
+        <TextView
+            android:id="@+id/splashTagline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STUDY SMARTER"
+            android:textColor="#F5C518"
+            android:textSize="12sp"
+            android:letterSpacing="0.3"
+            android:layout_marginTop="4dp"
+            android:alpha="0" />
+    </LinearLayout>
+
+</FrameLayout>

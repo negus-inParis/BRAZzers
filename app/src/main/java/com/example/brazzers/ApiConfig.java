@@ -3,21 +3,24 @@ package com.example.brazzers;
 /**
  * Centralized API configuration.
  *
+ * Using Groq — 100% FREE, no credit card required.
+ * Sign up at https://console.groq.com and create an API key.
+ * Free tier: 30 requests/min, 14,400 requests/day.
+ *
  * TODO: For production, move this key to a secure backend proxy.
- *       The app should call YOUR server, which then calls Gemini.
  *       Never ship API keys in production APKs.
  */
 public final class ApiConfig {
     private ApiConfig() {}
 
-    // Gemini API key — replace or proxy in production
-    public static final String GEMINI_API_KEY = "AIzaSyCB5TdSVk6WTyIGqYanUHpQCI9M7-BdPXg";
+    // Groq API key — get yours FREE at https://console.groq.com/keys
+    // ⚠️ Replace the placeholder below with your own Groq API key before running.
+    public static final String API_KEY = "YOUR_GROQ_API_KEY_HERE";
 
-    // Using gemini-pro as the reliable fallback since 2.0 has 0 quota and 1.5 is 404'ing on this key
-    public static final String GEMINI_MODEL = "gemini-pro";
+    // Llama 3.3 70B: powerful, fast, and completely free
+    public static final String MODEL = "llama-3.3-70b-versatile";
 
-    public static String getGeminiUrl() {
-        return "https://generativelanguage.googleapis.com/v1beta/models/"
-                + GEMINI_MODEL + ":generateContent?key=" + GEMINI_API_KEY;
+    public static String getApiUrl() {
+        return "https://api.groq.com/openai/v1/chat/completions";
     }
 }
